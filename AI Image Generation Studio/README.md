@@ -2,7 +2,7 @@
 
 A modern, full-stack web application for generating AI-powered images using cutting-edge machine learning models. Built with React, Express, and integrated with OpenAI's DALL-E 3.
 
-## ✨ Features
+## ✨ 
 
 - **AI Image Generation**: Create stunning images from text prompts using DALL-E 3
 - **Image Gallery**: Browse, filter, and manage your generated images
