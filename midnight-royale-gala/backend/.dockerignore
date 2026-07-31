@@ -1,0 +1,10 @@
+node_modules/
+.git
+.env
+.env.local
+dist/
+.cache
+.gitignore
+*.md
+.DS_Store
+prisma/seed.ts

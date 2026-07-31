@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  email         String          @unique
+  password      String
+  name          String
+  phone         String?
+  role          String          @default("USER")
+  avatar        String?
+  emailVerified Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  bookings      Booking[]
+  payments      Payment[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  passwordResets PasswordReset[]
+  admin         Admin?
+
+  @@index([role])
+}
+
+model PasswordReset {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Event {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  date        DateTime
+  time        String
+  venueId     String       @db.ObjectId
+  venue       Venue        @relation(fields: [venueId], references: [id])
+  imageUrl    String?
+  gallery     String[]     @default([])
+  status      String       @default("DRAFT")
+  featured    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ticketTypes TicketType[]
+  seats       Seat[]
+  bookings    Booking[]
+
+  @@index([status])
+  @@index([featured])
+  @@index([date])
+  @@index([venueId])
+}
+
+model Venue {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  address     String
+  city        String
+  capacity    Int
+  description String?
+  images      String[] @default([])
+  amenities   String[] @default([])
+  mapUrl      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  events      Event[]
+
+  @@index([city])
+  @@index([name])
+}
+
+model TicketType {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  eventId        String          @db.ObjectId
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  price          Float
+  quantity       Int
+  available      Int
+  benefits       String[]        @default([])
+  color          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bookingTickets BookingTicket[]
+
+  @@index([eventId])
+}
+
+model Seat {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  eventId      String        @db.ObjectId
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  section      String
+  row          String
+  number       Int
+  tier         String        @default("SILVER")
+  price        Float
+  status       String        @default("AVAILABLE")
+  x            Float?
+  y            Float?
+  lockedBy     String?
+  lockedAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bookingSeats BookingSeat[]
+
+  @@index([eventId])
+  @@index([eventId, status])
+  @@index([lockedBy])
+}
+
+model Booking {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String          @db.ObjectId
+  user           User            @relation(fields: [userId], references: [id])
+  eventId        String          @db.ObjectId
+  event          Event           @relation(fields: [eventId], references: [id])
+  bookingRef     String          @unique
+  status         String          @default("PENDING")
+  totalAmount    Float
+  discountAmount Float           @default(0)
+  couponCode     String?
+  paymentStatus  String?
+  paymentId      String?
+  qrCode         String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bookingTickets BookingTicket[]
+  bookingSeats   BookingSeat[]
+  payments       Payment[]
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BookingTicket {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId    String     @db.ObjectId
+  booking      Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ticketTypeId String     @db.ObjectId
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+  quantity     Int
+  unitPrice    Float
+
+  @@index([bookingId])
+  @@index([ticketTypeId])
+}
+
+model BookingSeat {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId String  @db.ObjectId
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  seatId    String  @db.ObjectId
+  seat      Seat    @relation(fields: [seatId], references: [id])
+
+  @@index([bookingId])
+  @@index([seatId])
+}
+
+model Payment {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String   @db.ObjectId
+  user                  User     @relation(fields: [userId], references: [id])
+  bookingId             String   @db.ObjectId
+  booking               Booking  @relation(fields: [bookingId], references: [id])
+  amount                Float
+  currency              String   @default("usd")
+  status                String   @default("pending")
+  stripePaymentIntentId String?
+  method                String?
+  createdAt             DateTime @default(now())
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([stripePaymentIntentId])
+}
+
+model Coupon {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  code          String    @unique
+  discountType  String
+  discountValue Float
+  maxUses       Int       @default(100)
+  usedCount     Int       @default(0)
+  minAmount     Float     @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  @@index([isActive])
+}
+
+model Admin {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @unique @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model ActivityLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?  @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
