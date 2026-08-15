@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: ppe-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: product_explorer
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ppe-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: mongodb://mongo:27017/product_explorer
+      JWT_SECRET: change-this-secret-in-production
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:8080
+      CORS_ORIGIN: http://localhost:8080
+    depends_on:
+      mongo:
+        condition: service_healthy
+    command: sh -c "npx prisma db push && node dist/server.js"
+
+  client:
+    build:
+      context: ./client
+    container_name: ppe-client
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

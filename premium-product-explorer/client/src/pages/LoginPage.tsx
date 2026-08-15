@@ -1,0 +1,126 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Eye, EyeOff, Loader2, Lock, Mail, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getErrorMessage } from "@/api/client";
+
+const schema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required")
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export default function LoginPage() {
+  const { login, loading } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  const onSubmit = async (values: FormValues) => {
+    setError(null);
+    try {
+      await login(values);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <div className="relative flex min-h-[80vh] items-center justify-center overflow-hidden py-12">
+      <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-indigo-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 bottom-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative w-full max-w-md rounded-2xl border bg-card p-8 shadow-lift"
+      >
+        <div className="mb-6 text-center">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white shadow-glow">
+            <Sparkles className="h-6 w-6" />
+          </span>
+          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to continue exploring</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                className="pl-9"
+                {...register("email")}
+              />
+            </div>
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className="pl-9 pr-9"
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Sign in
+          </Button>
+        </form>
+
+        <div className="mt-4 rounded-lg border border-dashed bg-muted/40 p-3 text-center text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Demo accounts</p>
+          <p className="mt-1">User: user@example.com / User@123</p>
+          <p>Admin: admin@example.com / Admin@123</p>
+        </div>
+
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/register" className="font-medium text-primary hover:underline">
+            Create one
+          </Link>
+        </p>
+      </motion.div>
+    </div>
+  );
+}

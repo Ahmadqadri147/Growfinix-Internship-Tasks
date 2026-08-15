@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("USER")
+  avatar        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  reviews       Review[]
+  wishlist      WishlistItem[]
+  orders        Order[]
+  searchHistory SearchHistory[]
+
+  @@index([role])
+}
+
+model Category {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  image       String?
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Brand {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String    @unique
+  slug        String    @unique
+  logo        String?
+  description String?
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Product {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  sku          String     @unique
+  title        String
+  description  String
+  brandId      String     @db.ObjectId
+  brand        Brand      @relation(fields: [brandId], references: [id])
+  categoryId   String     @db.ObjectId
+  category     Category   @relation(fields: [categoryId], references: [id])
+  subCategory  String
+  price        Float
+  discount     Int        @default(0)
+  rating       Float      @default(0)
+  reviewCount  Int        @default(0)
+  stock        Int        @default(0)
+  images       String[]
+  createdAt    DateTime   @default(now())
+  popularity   Int        @default(0)
+  tags         String[]
+  featured     Boolean    @default(false)
+  availability String     @default("IN_STOCK")
+  location     String?
+  seller       String?
+  color        String[]
+  sizes        String[]
+  shipping     Json?
+  viewCount    Int        @default(0)
+  reviews      Review[]
+  wishlistedBy WishlistItem[]
+  orderItems   OrderItem[]
+
+  @@index([title])
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([price])
+  @@index([rating])
+  @@index([popularity])
+  @@index([createdAt])
+  @@index([featured, availability])
+  @@index([availability, price, rating])
+  @@fulltext([title, description, subCategory, tags])
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  title     String?
+  comment   String
+  helpful   Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @db.ObjectId
+
+  @@index([productId, createdAt])
+  @@index([userId])
+  @@unique([userId, productId])
+}
+
+model WishlistItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @db.ObjectId
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+}
+
+model Order {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  total     Float
+  status    String      @default("PENDING")
+  items     OrderItem[]
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String      @db.ObjectId
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  quantity  Int
+  price     Float
+  product   Product @relation(fields: [productId], references: [id])
+  productId String  @db.ObjectId
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String  @db.ObjectId
+
+  @@index([productId])
+  @@index([orderId])
+}
+
+model SearchHistory {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  query        String
+  resultsCount Int      @default(0)
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?  @db.ObjectId
+  createdAt    DateTime @default(now())
+
+  @@index([query, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
