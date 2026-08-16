@@ -10,7 +10,6 @@ import { useBookingStore } from "@/stores/bookingStore";
 import { createBooking } from "@/api/bookings";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import type { Booking } from "@/types";
 
 const steps = [
   { id: 1, label: "Details", icon: User },
@@ -48,8 +47,6 @@ function generateBookingRef(): string {
 export default function Checkout() {
   const navigate = useNavigate();
   const { step, setStep, eventId, selectedSeats, ticketTypes, subtotal, discount, serviceFee, total, coupon, calculateTotals, reset } = useBookingStore();
-  const [guestData, setGuestData] = useState<GuestData | null>(null);
-  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,7 +65,7 @@ export default function Checkout() {
     if (ticketTypes.length === 0 && selectedSeats.length === 0) {
       navigate("/");
     }
-  }, []);
+  }, [navigate, selectedSeats.length, ticketTypes.length]);
 
   useEffect(() => {
     calculateTotals();
@@ -82,12 +79,10 @@ export default function Checkout() {
     if (step === 1) {
       const valid = await guestForm.trigger();
       if (!valid) return;
-      setGuestData(guestForm.getValues());
       setStep(2);
     } else if (step === 2) {
       const valid = await paymentForm.trigger();
       if (!valid) return;
-      setPaymentData(paymentForm.getValues());
       setStep(3);
     } else if (step === 3) {
       if (!agreeTerms) {
@@ -115,19 +110,6 @@ export default function Checkout() {
       } catch {
         // Demo mode: always succeed with a generated reference
         const ref = generateBookingRef();
-        const demoBooking: Booking = {
-          id: `demo-${Date.now()}`,
-          bookingRef: ref,
-          userId: "demo-user-001",
-          eventId: eventId || "",
-          status: "CONFIRMED",
-          totalAmount: total + tax,
-          discountAmount: discount,
-          couponCode: code,
-          paymentStatus: "PAID",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
         setIsProcessing(false);
         setBookingRef(ref);
         toast.success("Booking confirmed!");
@@ -205,7 +187,7 @@ export default function Checkout() {
                   <Input
                     label="Full Name"
                     id="fullName"
-                    placeholder="John Doe"
+                    placeholder="Enter your full name"
                     error={guestForm.formState.errors.fullName?.message}
                     {...guestForm.register("fullName")}
                   />
@@ -213,7 +195,7 @@ export default function Checkout() {
                     label="Email"
                     id="email"
                     type="email"
-                    placeholder="john@example.com"
+                    placeholder="Enter your email"
                     error={guestForm.formState.errors.email?.message}
                     {...guestForm.register("email")}
                   />
@@ -221,7 +203,7 @@ export default function Checkout() {
                     label="Phone"
                     id="phone"
                     type="tel"
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="Enter your phone number"
                     error={guestForm.formState.errors.phone?.message}
                     {...guestForm.register("phone")}
                   />
@@ -233,7 +215,7 @@ export default function Checkout() {
                       id="specialRequests"
                       rows={3}
                       className="h-24 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-all duration-200 focus:border-gold-500/50 focus:bg-white/10 focus:ring-1 focus:ring-gold-500/30"
-                      placeholder="Any special requirements..."
+                      placeholder="Any special requests..."
                       {...guestForm.register("specialRequests")}
                     />
                   </div>
@@ -291,7 +273,7 @@ export default function Checkout() {
                   <Input
                     label="Cardholder Name"
                     id="cardholderName"
-                    placeholder="John Doe"
+                    placeholder="Enter your name as on card"
                     error={paymentForm.formState.errors.cardholderName?.message}
                     {...paymentForm.register("cardholderName")}
                   />

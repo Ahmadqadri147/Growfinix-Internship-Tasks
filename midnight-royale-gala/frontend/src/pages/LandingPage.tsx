@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import PageTransition from "@/components/layout/PageTransition";
+import PageTransition from "@/components/landing/layout/PageTransition";
 import Hero from "@/components/landing/Hero";
 import StorySection from "@/components/landing/StorySection";
 import Highlights from "@/components/landing/Highlights";

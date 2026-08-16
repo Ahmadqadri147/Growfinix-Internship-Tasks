@@ -76,7 +76,7 @@ function Particles() {
 function Rings() {
   const groupRef = useRef<THREE.Group>(null);
 
-  useFrame((_) => {
+  useFrame(() => {
     if (groupRef.current) {
       groupRef.current.rotation.y += 0.03;
     }

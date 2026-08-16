@@ -96,7 +96,7 @@ export default function Register() {
               <Input
                 label="Full Name"
                 id="fullName"
-                placeholder="John Doe"
+                placeholder="Enter your full name"
                 error={errors.fullName?.message}
                 {...register("fullName")}
               />
@@ -114,7 +114,7 @@ export default function Register() {
                 label="Phone"
                 id="phone"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
+                placeholder="Enter your phone number"
                 error={errors.phone?.message}
                 {...register("phone")}
               />

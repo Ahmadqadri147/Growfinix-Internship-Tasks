@@ -3,8 +3,8 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import RootLayout from "@/layouts/RootLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import LoadingScreen from "@/components/layout/LoadingScreen";
-import PageTransition from "@/components/layout/PageTransition";
+import LoadingScreen from "@/components/landing/layout/LoadingScreen";
+import PageTransition from "@/components/landing/layout/PageTransition";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const LandingPage = lazy(() => import("@/pages/LandingPage"));

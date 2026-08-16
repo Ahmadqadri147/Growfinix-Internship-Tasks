@@ -2,16 +2,10 @@ import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Calendar,
-  Ticket,
-  Settings,
-  Users,
   BarChart3,
   Home,
   Menu,
   X,
-  Shield,
-  Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/contexts/AuthContext";

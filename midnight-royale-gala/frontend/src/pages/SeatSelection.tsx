@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { ArrowLeft, Lock, ZoomIn, ZoomOut, Clock, ChevronRight } from "lucide-react";
 import { Button, GlassCard, Badge, Input, Skeleton } from "@/components/ui";
 import { useEventSeats, useLockSeat, useReleaseSeat } from "@/hooks/useSeats";
 import { useEvent } from "@/hooks/useEvents";
-import { useSocket } from "@/hooks/useSocket";
-import { useIsMobile } from "@/hooks/useMediaQuery";
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/lib/utils";
 import type { Seat } from "@/types";
@@ -21,14 +18,12 @@ const tierLabels: Record<string, string> = {
 export default function SeatSelection() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
 
   const { data: event, isLoading: eventLoading } = useEvent(id!);
   const { data: seats = [], isLoading: seatsLoading } = useEventSeats(id!);
   const lockSeat = useLockSeat(id!);
   const releaseSeat = useReleaseSeat(id!);
   const { selectedSeats, addSeat, removeSeat, subtotal: ticketSubtotal } = useBookingStore();
-  const socket = useSocket(id);
 
   const [zoom, setZoom] = useState(1);
   const [timeLeft, setTimeLeft] = useState(600);
@@ -66,18 +61,6 @@ export default function SeatSelection() {
     },
     [selectedSeats, addSeat, removeSeat, lockSeat, releaseSeat],
   );
-
-  const getSeatColor = (seat: Seat) => {
-    const isSelected = selectedSeats.find((s) => s.id === seat.id);
-    if (isSelected) return "bg-gold-500 border-gold-400 shadow-gold-sm";
-    if (seat.status === "BOOKED") return "bg-red-900/50 border-red-700/50 cursor-not-allowed";
-    if (seat.status === "RESERVED") return "bg-gray-800/50 border-gray-700/50 cursor-not-allowed";
-    const tier = seat.tier;
-    if (tier === "VIP") return "bg-yellow-900/30 border-yellow-600/40 hover:bg-yellow-800/40";
-    if (tier === "DIAMOND") return "bg-purple-900/30 border-purple-600/40 hover:bg-purple-800/40";
-    if (tier === "GOLD") return "bg-blue-900/30 border-blue-600/40 hover:bg-blue-800/40";
-    return "bg-gray-700/30 border-gray-500/40 hover:bg-gray-600/40";
-  };
 
   if (eventLoading || seatsLoading) {
     return (

@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DEMO_USER: User = {
   id: "demo-user-001",
   email: "admin@midnightroyale.com",
-  name: "Alex Morgan",
+  name: "Ahmad Qadri",
   phone: "+1 (555) 987-6543",
   role: "ADMIN",
   emailVerified: true,

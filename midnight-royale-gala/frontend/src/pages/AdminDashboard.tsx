@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
-  Button, GlassCard, Input, Select, Badge, Modal, DataTable, Tabs, Skeleton,
+  Button, GlassCard, Input, Select, Badge, Modal, DataTable, Tabs,
 } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -72,7 +72,6 @@ const statusColors: Record<string, "success" | "warning" | "error" | "info"> = {
 type ModalMode = "create" | "edit";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("overview");
   const [liveCount, setLiveCount] = useState(856);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -123,7 +122,6 @@ export default function AdminDashboard() {
 
         <div className="mt-8">
           <Tabs
-            onChange={setActiveTab}
             tabs={[
               {
                 id: "overview",
@@ -305,7 +303,7 @@ function OverviewTab({ liveCount }: { liveCount: number }) {
 }
 
 function EventsTab({
-  searchQuery, setSearchQuery, eventModal, setEventModal, modalMode, setModalMode, editingId, setEditingId,
+  searchQuery, setSearchQuery, eventModal, setEventModal, modalMode, setModalMode, editingId: _editingId, setEditingId,
 }: {
   searchQuery: string; setSearchQuery: (v: string) => void;
   eventModal: boolean; setEventModal: (v: boolean) => void;
@@ -490,7 +488,7 @@ function BookingsTab({
           {
             key: "actions",
             header: "Actions",
-            render: (item) => (
+            render: (_item) => (
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => toast.success("Status updated")}>
@@ -577,7 +575,7 @@ function UsersTab({
 }
 
 function TicketsTab({
-  ticketModal, setTicketModal, modalMode, setModalMode, editingId, setEditingId,
+  ticketModal, setTicketModal, modalMode, setModalMode, editingId: _editingId, setEditingId,
 }: {
   ticketModal: boolean; setTicketModal: (v: boolean) => void;
   modalMode: ModalMode; setModalMode: (v: ModalMode) => void;
@@ -655,7 +653,7 @@ function TicketsTab({
 }
 
 function CouponsTab({
-  couponModal, setCouponModal, modalMode, setModalMode, editingId, setEditingId,
+  couponModal, setCouponModal, modalMode, setModalMode, editingId: _editingId, setEditingId,
 }: {
   couponModal: boolean; setCouponModal: (v: boolean) => void;
   modalMode: ModalMode; setModalMode: (v: ModalMode) => void;

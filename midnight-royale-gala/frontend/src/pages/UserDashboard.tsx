@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, Download, XCircle, User, Settings, Bell, Moon, AlertTriangle } from "lucide-react";
+import { Calendar, Clock, Download, XCircle, Bell, Moon, AlertTriangle } from "lucide-react";
 import { Button, GlassCard, Badge, Input, Tabs, Skeleton } from "@/components/ui";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useMyBookings, useCancelBooking } from "@/hooks/useBookings";

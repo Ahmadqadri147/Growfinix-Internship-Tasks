@@ -212,7 +212,7 @@ export default function EventDetails() {
               </div>
               <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
                 <Users className="h-4 w-4" />
-                Capacity: {typeof event.venue === 'object' && event.venue ? (event.venue as any).capacity?.toLocaleString() : '500'} guests
+                Capacity: {typeof event.venue === "object" && event.venue ? ("capacity" in event.venue ? event.venue.capacity.toLocaleString() : "500") : "500"} guests
               </div>
             </GlassCard>
           </section>

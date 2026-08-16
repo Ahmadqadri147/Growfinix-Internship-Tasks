@@ -1,0 +1,35 @@
+{
+  "name": "email-queue-backend",
+  "version": "1.0.0",
+  "description": "Background email queue system API — Express + Redis + BullMQ + Nodemailer + MongoDB",
+  "main": "server.js",
+  "scripts": {
+    "server": "node server.js",
+    "worker": "node worker.js",
+    "dev": "nodemon server.js",
+    "dev:worker": "nodemon worker.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "bullmq",
+    "redis",
+    "nodemailer",
+    "express",
+    "queue"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "bullmq": "^5.34.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.4.1",
+    "mongoose": "^8.9.0",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
