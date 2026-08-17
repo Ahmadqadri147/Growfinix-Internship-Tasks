@@ -29,8 +29,8 @@ async function shutdown(signal) {
   logger.warn(`[WORKER] Received ${signal} — shutting down gracefully…`);
   const finish = setTimeout(() => process.exit(1), 10000);
   try {
-    await worker.close();
-    await redisConnection.quit();
+    if (worker) await worker.close();
+    if (redisConnection) await redisConnection.quit();
     await disconnectDB();
     clearTimeout(finish);
     process.exit(0);

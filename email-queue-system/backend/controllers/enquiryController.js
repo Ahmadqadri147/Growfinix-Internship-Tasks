@@ -5,6 +5,7 @@ const customerConfirmation = require('../templates/customerConfirmation');
 const adminNotification = require('../templates/adminNotification');
 const { sanitizeBody } = require('../utils/sanitizer');
 const { AppError } = require('../middleware/errorHandler');
+const config = require('../config/env');
 const logger = require('../utils/logger');
 
 const PAGE_SIZE = 10;
@@ -62,7 +63,7 @@ async function createEnquirySync(req, res, next) {
       type: clean.type || 'enquiry',
     });
 
-    const [customerEmail, adminEmail] = [enquiry.email, process.env.ADMIN_EMAIL];
+    const [customerEmail, adminEmail] = [enquiry.email, config.adminEmail];
 
     // The API now waits for BOTH emails before responding — slow!
     await Promise.all([

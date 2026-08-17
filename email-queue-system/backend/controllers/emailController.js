@@ -1,5 +1,5 @@
 const EmailLog = require('../models/EmailLog');
-const { retryJob, removeJob } = require('../queues/emailQueue');
+const { retryJob, removeJob, getJobState } = require('../queues/emailQueue');
 const { AppError } = require('../middleware/errorHandler');
 const logger = require('../utils/logger');
 
@@ -41,34 +41,42 @@ async function listEmails(req, res, next) {
   }
 }
 
-// POST /api/emails/:jobId/retry — re-queue a permanently failed job.
+// POST /api/emails/:jobId/retry — re-queue a failed job.
+// DB status may be stale ('queued') while the Redis job is actually
+// failed — in that case retry is still allowed.
 async function retryEmail(req, res, next) {
   try {
     const log = await EmailLog.findOne({ queueJobId: req.params.jobId });
     if (!log) throw new AppError('Email log not found', 404);
 
-    if (log.status !== 'failed') {
-      throw new AppError(`Only failed emails can be retried (current status: ${log.status})`, 400);
+    if (log.status === 'sent') {
+      throw new AppError('Sent emails cannot be retried', 400);
+    }
+    if (log.status === 'processing') {
+      throw new AppError('Email is currently being processed — try again shortly', 409);
+    }
+    if (log.status === 'failed' || (log.status === 'queued' && (await getJobState(req.params.jobId)) === 'failed')) {
+      const job = await retryJob(req.params.jobId);
+      if (!job) throw new AppError('Original queue job not found', 404);
+
+      await log.updateOne({
+        queueJobId: job.id,
+        status: 'queued',
+        attempts: 0,
+        error: null,
+        sentAt: null,
+        processedAt: null,
+      });
+
+      logger.info(`[API] Retry scheduled for job ${req.params.jobId} → new job ${job.id}`);
+      return res.json({
+        success: true,
+        message: 'Email has been re-queued for delivery.',
+        data: { jobId: job.id },
+      });
     }
 
-    const job = await retryJob(req.params.jobId);
-    if (!job) throw new AppError('Original queue job not found', 404);
-
-    await log.updateOne({
-      queueJobId: job.id,
-      status: 'queued',
-      attempts: 0,
-      error: null,
-      sentAt: null,
-      processedAt: null,
-    });
-
-    logger.info(`[API] Retry scheduled for job ${req.params.jobId} → new job ${job.id}`);
-    res.json({
-      success: true,
-      message: 'Email has been re-queued for delivery.',
-      data: { jobId: job.id },
-    });
+    throw new AppError(`Only failed emails can be retried (current status: ${log.status})`, 400);
   } catch (err) {
     next(err);
   }

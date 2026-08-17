@@ -1,5 +1,6 @@
 const { Queue } = require('bullmq');
 const { createRedisConnection } = require('../config/redis');
+const config = require('../config/env');
 const EmailLog = require('../models/EmailLog');
 const logger = require('../utils/logger');
 
@@ -32,12 +33,12 @@ async function queueEmailsForEnquiry(enquiry) {
     {
       emailType: 'customer_confirmation',
       to: enquiry.email,
-      from: process.env.ADMIN_EMAIL,
+      from: config.adminEmail,
     },
     {
       emailType: 'admin_notification',
-      to: process.env.ADMIN_EMAIL,
-      from: process.env.ADMIN_EMAIL,
+      to: config.adminEmail,
+      from: config.adminEmail,
     },
   ];
 
@@ -108,6 +109,12 @@ async function retryJob(existingJobId) {
   return newJob;
 }
 
+async function getJobState(existingJobId) {
+  const oldJob = await emailQueue.getJob(existingJobId);
+  if (!oldJob) return 'missing';
+  return oldJob.getState();
+}
+
 async function removeJob(existingJobId) {
   const oldJob = await emailQueue.getJob(existingJobId);
   if (oldJob) await oldJob.remove();
@@ -124,6 +131,7 @@ module.exports = {
   queueEmailsForEnquiry,
   getQueueStats,
   retryJob,
+  getJobState,
   removeJob,
   closeQueue,
 };

@@ -31,6 +31,8 @@ export default function BookingForm({ addToast }) {
     else if (!emailRegex.test(formData.email)) tempErrors.email = 'Email is invalid';
 
     if (!formData.phone.trim()) tempErrors.phone = 'Phone number is required';
+    else if (!/^\+?[0-9\s-]{7,15}$/.test(formData.phone.trim()))
+      tempErrors.phone = 'Phone must be 7-15 digits (optionally starting with +)';
 
     if (!formData.subject.trim()) tempErrors.subject = 'Subject is required';
     else if (formData.subject.length < 3 || formData.subject.length > 200)

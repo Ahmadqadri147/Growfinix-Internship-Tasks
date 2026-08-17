@@ -1,8 +1,9 @@
 const EmailLog = require('../models/EmailLog');
+const Enquiry = require('../models/Enquiry');
 const customerConfirmation = require('../templates/customerConfirmation');
 const adminNotification = require('../templates/adminNotification');
-const { QUEUE_NAME, emailQueue } = require('../queues/emailQueue');
-const { sendEmail, isSmtpConfigured } = require('../services/emailService');
+const { QUEUE_NAME } = require('../queues/emailQueue');
+const { sendEmail } = require('../services/emailService');
 const logger = require('../utils/logger');
 
 const EMAIL_SUBJECTS = {
@@ -24,7 +25,7 @@ function subjectFor(emailType, enquiry) {
 // Processor — one BullMQ job = one email. Throwing here lets BullMQ
 // run its retry/backoff policy and eventually marks the job failed.
 async function processEmailJob(job) {
-  const { emailLogId, emailType, enquiry } = job.data;
+  const { emailLogId, emailType } = job.data;
 
   logger.info(`[WORKER] Processing job id=${job.id} type=${emailType} attempt=${job.attemptsMade + 1}`);
 
@@ -40,8 +41,18 @@ async function processEmailJob(job) {
     error: null,
   });
 
-  const html = renderTemplate(emailType, enquiry);
-  const subject = subjectFor(emailType, enquiry);
+  // Fallback: legacy/manually-queued jobs may lack the enquiry snapshot.
+  // Load the full enquiry from MongoDB so templates never crash.
+  let enquiryData = job.data.enquiry;
+  if (!enquiryData) {
+    enquiryData = await Enquiry.findById(log.enquiryId).lean();
+    if (!enquiryData) {
+      throw new Error(`Enquiry ${log.enquiryId} not found for job ${job.id}`);
+    }
+  }
+
+  const html = renderTemplate(emailType, enquiryData);
+  const subject = subjectFor(emailType, enquiryData);
 
   await sendEmail({
     to: job.data.recipient,
@@ -72,18 +83,21 @@ function createWorker(connection) {
 
   worker.on('failed', (job, err) => {
     logger.error(`[WORKER] Email failed id=${job?.id} error=${err.message}`);
-    const attemptsExhausted = job && job.attemptsMade >= job.opts.attempts;
-    if (job && !attemptsExhausted) {
+    if (!job) return;
+    // A job with attempts 0/undefined must be treated as exhausted immediately —
+    // otherwise the log gets stuck in 'queued' forever.
+    const maxAttempts = job.opts?.attempts || 1;
+    const attemptsExhausted = job.attemptsMade >= maxAttempts;
+    if (!attemptsExhausted) {
       // Back to queued — BullMQ is scheduling the next attempt.
       EmailLog.updateOne(
         { queueJobId: job.id },
         { status: 'queued', error: err.message.slice(0, 500) }
       ).catch(() => {});
-      logger.warn(`[QUEUE] Retrying job id=${job.id} (attempt ${job.attemptsMade}/${job.opts.attempts})`);
-    }
-    if (job && attemptsExhausted) {
+      logger.warn(`[QUEUE] Retrying job id=${job.id} (attempt ${job.attemptsMade}/${maxAttempts})`);
+    } else {
       logger.error(`[WORKER] Job permanently failed id=${job.id}`);
-      markJobFailed(job.id, err.message);
+      markJobFailed(job.id, err.message).catch(() => {});
     }
   });
 
@@ -104,4 +118,4 @@ async function markJobFailed(jobId, errorMessage) {
   logger.warn(`[WORKER] EmailLog marked failed for job ${jobId}`);
 }
 
-module.exports = { createWorker, processEmailJob, markJobFailed, isSmtpConfigured, emailQueue };
+module.exports = { createWorker, processEmailJob, markJobFailed };

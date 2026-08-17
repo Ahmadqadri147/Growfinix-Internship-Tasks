@@ -360,11 +360,11 @@ export default function Dashboard({ addToast }) {
                             {new Date(email.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                           </span>
                         </div>
-                        {email.processedAt && (
+                        {email.sentAt && (
                           <div className="flex items-center gap-1">
                             <span className="w-8">Sent:</span>
                             <span className="text-slate-400">
-                              {new Date(email.processedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              {new Date(email.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
                           </div>
                         )}
@@ -372,7 +372,7 @@ export default function Dashboard({ addToast }) {
 
                       {/* Actions */}
                       <td className="py-4 px-6 text-right space-x-2">
-                        {email.status === 'failed' && (
+                        {email.status === 'failed' && email.queueJobId && (
                           <button
                             onClick={() => handleRetry(email.queueJobId)}
                             className="p-2 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-lg transition"
@@ -381,13 +381,15 @@ export default function Dashboard({ addToast }) {
                             <Play size={14} />
                           </button>
                         )}
-                        <button
-                          onClick={() => handleDelete(email.queueJobId)}
-                          className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition"
-                          title="Delete Log"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {email.queueJobId && (
+                          <button
+                            onClick={() => handleDelete(email.queueJobId)}
+                            className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition"
+                            title="Delete Log"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

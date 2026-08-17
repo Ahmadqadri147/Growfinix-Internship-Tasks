@@ -16,7 +16,7 @@ export default function PerformanceDemo({ addToast }) {
     return {
       fullName: `Demo Guest ${seq}`,
       email: `demo-guest-${seq}@example.com`,
-      phone: `+1 (555) 01${seq}-${Math.floor(1000 + Math.random() * 9000)}`,
+      phone: `+155501${seq}${Math.floor(1000 + Math.random() * 9000)}`,
       subject: subjects[idx],
       message: 'Testing round-trip network performance and API responsiveness with SMTP latency simulation.',
       bookingDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
