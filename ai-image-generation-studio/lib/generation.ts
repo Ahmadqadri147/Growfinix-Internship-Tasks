@@ -154,21 +154,13 @@ async function requestImage(
 
   let response: Response;
   try {
-    const body: Record<string, unknown> = { prompt };
-    if (parameters.width) body.width = parameters.width;
-    if (parameters.height) body.height = parameters.height;
-    if (parameters.guidance_scale !== undefined) body.guidance_scale = parameters.guidance_scale;
-    if (parameters.num_inference_steps) body.num_inference_steps = parameters.num_inference_steps;
-    if (parameters.negative_prompt) body.negative_prompt = parameters.negative_prompt;
-    if (parameters.seed) body.seed = parameters.seed;
-
     response = await fetch(`https://api.cloudflare.com/client/v4/ai/inference/${cloudflareModel}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ prompt }),
       signal: controller.signal,
       cache: 'no-store',
     });
@@ -205,10 +197,8 @@ async function requestImage(
         );
       }
       
-      // Cloudflare AI may return base64-encoded image in data field
-      if (data && data.image_base64) {
-        const base64Data = data.image_base64;
-        const binaryString = atob(base64Data);
+      function decodeBase64(b64: string): Uint8Array {
+        const binaryString = atob(b64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
@@ -216,15 +206,19 @@ async function requestImage(
         return bytes;
       }
       
-      // If no image_base64, try to extract from message or other field
-      if (data && data.result && data.result.image_base64) {
-        const base64Data = data.result.image_base64;
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes;
+      // Cloudflare returns result.image as base64-encoded string
+      if (data?.result?.image && typeof data.result.image === 'string') {
+        return decodeBase64(data.result.image);
+      }
+      
+      // Fallback: data.image_base64
+      if (data?.image_base64 && typeof data.image_base64 === 'string') {
+        return decodeBase64(data.image_base64);
+      }
+      
+      // Fallback: data.result.image_base64
+      if (data?.result?.image_base64 && typeof data.result.image_base64 === 'string') {
+        return decodeBase64(data.result.image_base64);
       }
       
       throw new GenerationError(
