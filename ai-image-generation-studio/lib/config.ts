@@ -12,24 +12,19 @@ export const hasDatabase = Boolean(databaseUrl);
 
 export const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 
-export const hasHuggingFace = Boolean(process.env.HUGGINGFACE_API_TOKEN?.trim());
-
 export const hasCloudflare = Boolean(process.env.CLOUDFLARE_API_TOKEN?.trim());
 
 export const cloudflareModel =
   process.env.CLOUDFLARE_MODEL?.trim() || '@cf/black-forest-labs/flux-1-schnell';
-
-export const huggingFaceModel =
-  process.env.HUGGINGFACE_MODEL?.trim() || 'black-forest-labs/FLUX.1-schnell';
 
 export const hourlyGenerationLimit = Math.max(
   1,
   Number.parseInt(process.env.GENERATION_HOURLY_LIMIT || '40', 10) || 40
 );
 
-export const databaseMode = hasDatabase ? 'postgres' : isVercel ? 'unconfigured' : 'local';
+export const databaseMode = hasDatabase ? 'postgres' : 'local';
 
-export const storageMode = hasBlob ? 'vercel-blob' : isVercel ? 'unconfigured' : 'local';
+export const storageMode = hasBlob ? 'vercel-blob' : 'local';
 
 export function getAuthSecret(): string {
   const secret = process.env.AUTH_SECRET?.trim() || (isVercel ? '' : DEV_AUTH_SECRET);
@@ -72,14 +67,17 @@ export function assertStorageConfigured(): void {
 
 export function canGenerate(): { ok: boolean; reasons: string[] } {
   const reasons: string[] = [];
-  if (!hasHuggingFace) {
-    reasons.push('HUGGINGFACE_API_TOKEN is not set.');
+  if (!hasCloudflare) {
+    reasons.push('CLOUDFLARE_API_TOKEN is not set.');
   }
   if (isVercel && !hasBlob) {
     reasons.push('Persistent image storage (BLOB_READ_WRITE_TOKEN) is not configured.');
   }
-  if (isVercel && !hasDatabase) {
-    reasons.push('A Postgres database (DATABASE_URL) is not configured.');
+  if (isVercel) {
+    // Database check only required on Vercel
+    if (!hasDatabase) {
+      reasons.push('A Postgres database (DATABASE_URL) is not configured.');
+    }
   }
   return { ok: reasons.length === 0, reasons };
 }

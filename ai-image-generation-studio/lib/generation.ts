@@ -1,13 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { ApiError, GenerationError } from './api-error';
-import { huggingFaceModel, hasHuggingFace, cloudflareModel, hasCloudflare } from './config';
+import { cloudflareModel, hasCloudflare } from './config';
 import { DEFAULT_SIZE_BY_RATIO, RATIO_BY_SIZE } from './constants';
 import { getRepository } from './repository';
 import { saveImageBytes, deleteStoredImage } from './storage';
 import type { GeneratedImageResult, NewImageRecord } from './types';
 import type { GenerationInput } from './validation';
 
-const HF_BASE_URL = 'https://router.huggingface.co/hf-inference/models';
 const TOTAL_BUDGET_MS = 52_000;
 const MAX_REQUEST_MS = 45_000;
 
@@ -77,7 +76,7 @@ function parseJson(text: string): Record<string, unknown> | null {
   }
 }
 
-function mapHuggingFaceError(status: number, payload: Record<string, unknown> | null): GenerationError {
+function mapCloudflareError(status: number, payload: Record<string, unknown> | null): GenerationError {
   const rawMessage =
     typeof payload?.error === 'string'
       ? payload.error
@@ -85,25 +84,18 @@ function mapHuggingFaceError(status: number, payload: Record<string, unknown> | 
         ? payload.message
         : '';
 
-  if (status === 401) {
+  if (status === 401 || status === 403) {
     return new GenerationError(
       503,
       'GENERATION_AUTH',
-      'The image service rejected the configured API token.'
-    );
-  }
-  if (status === 403) {
-    return new GenerationError(
-      503,
-      'GENERATION_FORBIDDEN',
-      'The configured Hugging Face token does not have access to this model.'
+      'The Cloudflare AI token is invalid or does not have access to this model.'
     );
   }
   if (status === 402) {
     return new GenerationError(
       503,
       'GENERATION_CREDITS',
-      'The Hugging Face account needs credits to run this model.'
+      'The Cloudflare AI account needs credits to run this model.'
     );
   }
   if (status === 429) {
@@ -111,20 +103,6 @@ function mapHuggingFaceError(status: number, payload: Record<string, unknown> | 
       429,
       'GENERATION_RATE_LIMITED',
       'The image service is rate limiting requests. Please try again shortly.'
-    );
-  }
-  if (status === 404) {
-    return new GenerationError(
-      503,
-      'MODEL_NOT_FOUND',
-      'The configured image model is not available.'
-    );
-  }
-  if (status === 422 || status === 400) {
-    return new GenerationError(
-      422,
-      'INVALID_GENERATION_PARAMETERS',
-      rawMessage || 'The image service rejected these generation parameters.'
     );
   }
   if (status >= 500) {
@@ -153,11 +131,11 @@ async function requestImage(
   deadline: number,
   options: RequestOptions = {}
 ): Promise<Uint8Array> {
-  if (!hasHuggingFace) {
+  if (!hasCloudflare) {
     throw new GenerationError(
       503,
       'GENERATION_NOT_CONFIGURED',
-      'Image generation is not configured. Set HUGGINGFACE_API_TOKEN.'
+      'Cloudflare AI is not configured. Set CLOUDFLARE_API_TOKEN.'
     );
   }
 
@@ -176,16 +154,21 @@ async function requestImage(
 
   let response: Response;
   try {
-    response = await fetch(`${HF_BASE_URL}/${huggingFaceModel}`, {
+    response = await fetch(`https://api.cloudflare.com/client/v4/ai/inference/${cloudflareModel}`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+        'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
         'Content-Type': 'application/json',
-        Accept: 'image/png',
       },
-      body: JSON.stringify(
-        options.minimal ? { inputs: prompt } : { inputs: prompt, parameters }
-      ),
+      body: JSON.stringify({
+        prompt,
+        ...(parameters.width && { width: parameters.width }),
+        ...(parameters.height && { height: parameters.height }),
+        ...(parameters.guidance_scale !== undefined && { guidance_scale: parameters.guidance_scale }),
+        ...(parameters.num_inference_steps && { num_inference_steps: parameters.num_inference_steps }),
+        ...(parameters.negative_prompt && { negative_prompt: parameters.negative_prompt }),
+        ...(parameters.seed && { seed: parameters.seed }),
+      }),
       signal: controller.signal,
       cache: 'no-store',
     });
@@ -201,7 +184,7 @@ async function requestImage(
     throw new GenerationError(
       502,
       'GENERATION_NETWORK',
-      'Could not reach the image service. Please try again.'
+      'Could not reach the Cloudflare AI service. Please try again.'
     );
   } finally {
     clearTimeout(timer);
@@ -209,19 +192,53 @@ async function requestImage(
 
   if (response.ok) {
     const contentType = response.headers.get('content-type') || '';
+    let data;
+    
     if (contentType.includes('application/json')) {
-      const payload = parseJson(await response.text());
-      if (payload?.error) {
+      const jsonText = await response.text();
+      data = JSON.parse(jsonText);
+      if (data?.error) {
         throw new GenerationError(
           502,
           'GENERATION_FAILED',
-          typeof payload.error === 'string'
-            ? payload.error
-            : 'The image service returned an unexpected response.'
+          typeof data.error === 'string' ? data.error : 'Cloudflare AI returned an error.'
         );
       }
+      
+      // Cloudflare AI may return base64-encoded image in data field
+      if (data && data.image_base64) {
+        const base64Data = data.image_base64;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+      }
+      
+      // If no image_base64, try to extract from message or other field
+      if (data && data.result && data.result.image_base64) {
+        const base64Data = data.result.image_base64;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+      }
+      
+      throw new GenerationError(
+        502,
+        'GENERATION_FAILED',
+        'Cloudflare AI did not return a recognizable image format.'
+      );
     }
-    return new Uint8Array(await response.arrayBuffer());
+    
+    throw new GenerationError(
+      502,
+      'GENERATION_FAILED',
+      'Cloudflare AI did not return JSON response.'
+    );
   }
 
   const errorText = await response.text().catch(() => '');
@@ -241,18 +258,28 @@ async function requestImage(
     return requestImage(prompt, parameters, deadline, { attempt: attempt + 1, minimal: true });
   }
 
-  throw mapHuggingFaceError(response.status, payload);
+  throw mapCloudflareError(response.status, payload);
 }
 
 export async function generateImages(
   userId: string,
   input: GenerationInput
 ): Promise<GeneratedImageResult> {
-  if (!hasHuggingFace) {
+  const provider = getProviderFromConfig();
+  
+  if (!provider) {
     throw new ApiError(
       503,
       'GENERATION_NOT_CONFIGURED',
-      'Image generation is not configured. Set HUGGINGFACE_API_TOKEN.'
+      'No AI image generation provider is configured. Set CLOUDFLARE_API_TOKEN.'
+    );
+  }
+
+  if (provider !== 'cloudflare') {
+    throw new ApiError(
+      503,
+      'GENERATION_NOT_CONFIGURED',
+      'Only Cloudflare AI is configured. Set CLOUDFLARE_API_TOKEN.'
     );
   }
 
@@ -336,7 +363,7 @@ export async function generateImages(
         background: input.background ?? null,
         cameraAngle: input.cameraAngle ?? null,
         negativePrompt: input.negativePrompt ?? null,
-        imageType: `huggingface:${huggingFaceModel}`,
+        imageType: `cloudflare:${cloudflareModel}`,
         imageSize: size.label,
         aspectRatio: input.aspectRatio ?? RATIO_BY_SIZE[size.label] ?? null,
         quality: input.quality ?? 'standard',
@@ -356,7 +383,7 @@ export async function generateImages(
     return {
       images,
       failures,
-      model: huggingFaceModel,
+      model: cloudflareModel,
       generationTime: Date.now() - startedAt,
     };
   } catch (error) {
