@@ -1,45 +1,37 @@
-# Backend Dependencies
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Environment
 .env
+.env.*
+!.env.example
 
-# Server files
-server/.env
-server/dist
-server/generated_images/
+# Local data (JSON fallback database + locally generated images)
+data/
+public/generated_images/
 
-# Client files
-client/dist
-client/.env.local
-client/.env.development.local
+# Legacy app folders (migrated to Next.js)
+client/node_modules/
+server/node_modules/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
 Thumbs.db
-desktop.ini
+*.swp
 
 # Logs
 logs/
 *.log
 
-# Build
-build/
-dist/
-
-# Test files
-test_hf.png
-test_hf2.png
-*.test.js
-*.spec.js
-
-# Temporary files
-*.tmp
-*.temp
+# Vercel
+.vercel/
