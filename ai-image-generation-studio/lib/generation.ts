@@ -154,7 +154,12 @@ async function requestImage(
 
   let response: Response;
   try {
-    response = await fetch(`https://api.cloudflare.com/client/v4/ai/inference/${cloudflareModel}`, {
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+    const baseUrl = accountId
+      ? `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run`
+      : 'https://api.cloudflare.com/client/v4/ai/inference';
+
+    response = await fetch(`${baseUrl}/${cloudflareModel}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
