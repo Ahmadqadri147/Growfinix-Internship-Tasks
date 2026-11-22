@@ -5,7 +5,6 @@ import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { APP_DESCRIPTION, APP_NAME } from '@/lib/constants';
 import { getSiteUrl } from '@/lib/site';
-import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 const inter = Inter({
@@ -100,10 +99,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-      </head>
+    <html lang="en">
       <body
         className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} min-h-screen font-sans antialiased`}
       >

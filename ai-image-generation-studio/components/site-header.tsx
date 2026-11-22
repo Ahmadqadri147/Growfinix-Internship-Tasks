@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { cn, displayName, initials } from '@/lib/utils';
 import { useSession } from './session-provider';
-import { ThemeToggle } from './theme-toggle';
 
 const NAV_LINKS = [
   { href: '/studio', label: 'Studio' },
@@ -65,8 +64,6 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
-            <ThemeToggle />
-            <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
             {loading ? (
               <span className="skeleton h-9 w-28 rounded-[2px]" aria-hidden="true" />
             ) : user ? (
@@ -105,7 +102,6 @@ export function SiteHeader() {
             )}
           </div>
 
-          <ThemeToggle className="md:hidden" />
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
