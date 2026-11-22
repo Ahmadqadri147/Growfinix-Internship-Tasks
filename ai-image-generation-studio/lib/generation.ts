@@ -154,21 +154,21 @@ async function requestImage(
 
   let response: Response;
   try {
+    const body: Record<string, unknown> = { prompt };
+    if (parameters.width) body.width = parameters.width;
+    if (parameters.height) body.height = parameters.height;
+    if (parameters.guidance_scale !== undefined) body.guidance_scale = parameters.guidance_scale;
+    if (parameters.num_inference_steps) body.num_inference_steps = parameters.num_inference_steps;
+    if (parameters.negative_prompt) body.negative_prompt = parameters.negative_prompt;
+    if (parameters.seed) body.seed = parameters.seed;
+
     response = await fetch(`https://api.cloudflare.com/client/v4/ai/inference/${cloudflareModel}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt,
-        ...(parameters.width && { width: parameters.width }),
-        ...(parameters.height && { height: parameters.height }),
-        ...(parameters.guidance_scale !== undefined && { guidance_scale: parameters.guidance_scale }),
-        ...(parameters.num_inference_steps && { num_inference_steps: parameters.num_inference_steps }),
-        ...(parameters.negative_prompt && { negative_prompt: parameters.negative_prompt }),
-        ...(parameters.seed && { seed: parameters.seed }),
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
       cache: 'no-store',
     });
@@ -265,21 +265,11 @@ export async function generateImages(
   userId: string,
   input: GenerationInput
 ): Promise<GeneratedImageResult> {
-  const provider = getProviderFromConfig();
-  
-  if (!provider) {
+  if (!hasCloudflare) {
     throw new ApiError(
       503,
       'GENERATION_NOT_CONFIGURED',
-      'No AI image generation provider is configured. Set CLOUDFLARE_API_TOKEN.'
-    );
-  }
-
-  if (provider !== 'cloudflare') {
-    throw new ApiError(
-      503,
-      'GENERATION_NOT_CONFIGURED',
-      'Only Cloudflare AI is configured. Set CLOUDFLARE_API_TOKEN.'
+      'Cloudflare AI is not configured. Set CLOUDFLARE_API_TOKEN.'
     );
   }
 

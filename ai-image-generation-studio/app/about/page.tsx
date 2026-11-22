@@ -82,7 +82,7 @@ const FAQ = [
   {
     question: 'Which model renders the images?',
     answer:
-      'FLUX.1 schnell, accessed through the Hugging Face inference router. The model name can be changed with the HUGGINGFACE_MODEL environment variable.',
+      'FLUX.1 schnell, accessed through the Cloudflare Workers AI inference API. The model name can be changed with the CLOUDFLARE_MODEL environment variable.',
   },
   {
     question: 'How many images can I make?',

@@ -4,8 +4,8 @@ import {
   databaseMode,
   hasDatabase,
   hasBlob,
-  hasHuggingFace,
-  huggingFaceModel,
+  hasCloudflare,
+  cloudflareModel,
   storageMode,
 } from '@/lib/config';
 import { handleApiError, ok } from '@/lib/http';
@@ -26,9 +26,9 @@ export async function GET() {
         database: { mode: databaseMode, configured: hasDatabase },
         storage: { mode: storageMode, configured: hasBlob },
         generation: {
-          mode: 'huggingface',
-          configured: hasHuggingFace,
-          model: hasHuggingFace ? huggingFaceModel : null,
+          mode: 'cloudflare',
+          configured: hasCloudflare,
+          model: hasCloudflare ? cloudflareModel : null,
         },
       },
     };
