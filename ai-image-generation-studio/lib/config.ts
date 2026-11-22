@@ -14,6 +14,11 @@ export const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 
 export const hasHuggingFace = Boolean(process.env.HUGGINGFACE_API_TOKEN?.trim());
 
+export const hasCloudflare = Boolean(process.env.CLOUDFLARE_API_TOKEN?.trim());
+
+export const cloudflareModel =
+  process.env.CLOUDFLARE_MODEL?.trim() || '@cf/black-forest-labs/flux-1-schnell';
+
 export const huggingFaceModel =
   process.env.HUGGINGFACE_MODEL?.trim() || 'black-forest-labs/FLUX.1-schnell';
 
@@ -77,4 +82,11 @@ export function canGenerate(): { ok: boolean; reasons: string[] } {
     reasons.push('A Postgres database (DATABASE_URL) is not configured.');
   }
   return { ok: reasons.length === 0, reasons };
+}
+
+export function canUseCloudflare(): { ok: boolean; reason?: string } {
+  if (!hasCloudflare) {
+    return { ok: false, reason: 'CLOUDFLARE_API_TOKEN is not set.' };
+  }
+  return { ok: true };
 }

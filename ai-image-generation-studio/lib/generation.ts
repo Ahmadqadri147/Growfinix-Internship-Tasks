@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ApiError, GenerationError } from './api-error';
-import { huggingFaceModel, hasHuggingFace } from './config';
+import { huggingFaceModel, hasHuggingFace, cloudflareModel, hasCloudflare } from './config';
 import { DEFAULT_SIZE_BY_RATIO, RATIO_BY_SIZE } from './constants';
 import { getRepository } from './repository';
 import { saveImageBytes, deleteStoredImage } from './storage';
